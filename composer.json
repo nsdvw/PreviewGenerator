@@ -1,4 +1,5 @@
 {
+    "name": "nsdvw/PreviewGenerator",
     "require": {
         "smottt/wideimage": "^1.1"
     },
