@@ -49,21 +49,31 @@ class PreviewGenerator
             $blue
         );
         if ($this->tooSmall()) {
-            $preview = $adapter->merge($bg, $this->image, 'center', 'center');
+            $preview = $adapter->merge($bg, $this->image, 0, 0);
         } elseif ($this->isWide()) {
             $resized = $adapter->resizeDown($this->image, $this->previewWidth);
-            $preview = $adapter->merge($bg, $resized, 'center', 'center');
+            $preview = $adapter->merge(
+                $bg, $resized, 0, $this->getTopOffset($resized)
+            );
         } else {
-            $resized = $adapter->resizeDown($this->image, null, $this->previewHeight);
-            $preview = $adapter->merge($bg, $resized, 'center', 'center');
+            $resized = $adapter->resizeDown(
+                $this->image, null, $this->previewHeight
+            );
+            $preview = $adapter->merge(
+                $bg, $resized, $this->getLeftOffset($resized), 0
+            );
         }
 
         $this->preview = $preview;
         return $this;
     }
 
-    public function putWatermark($path, $wmRatio = self::WM_RATIO)
-    {
+    public function putWatermark(
+        $path,
+        $opacity = 100,
+        $wmRatio = self::WM_RATIO,
+        $margin = 10
+    ) {
         $adapter = $this->adapter;
         $wm = $adapter->load($path);
         $desiredWidth = intval($this->getSmallerSide($this->image) * $wmRatio);
@@ -71,8 +81,11 @@ class PreviewGenerator
         $this->image = $adapter->merge(
             $this->image,
             $wmResized,
-            'right - 10',
-            'bottom - 10'
+            $adapter->getWidth($this->image) - $adapter->getWidth($wmResized)
+                - $margin,
+            $adapter->getHeight($this->image) - $adapter->getHeight($wmResized)
+                - $margin,
+            $opacity
         );
         return $this;
     }
@@ -108,10 +121,28 @@ class PreviewGenerator
     private function getSmallerSide($image)
     {
         $adapter = $this->adapter;
-        if ($adapter->getWidth($image) > $adapter->getHeight($image)) {
+        if ($adapter->getWidth($image) < $adapter->getHeight($image)) {
             return $adapter->getWidth($image);
         } else {
             return $adapter->getHeight($image);
         }
+    }
+
+    private function getTopOffset($resizedImage)
+    {
+        $adapter = $this->adapter;
+        $resizedHeight = $adapter->getHeight($resizedImage);
+        return intval(
+            ($this->previewHeight - $resizedHeight) / 2
+        );
+    }
+
+    private function getLeftOffset($resizedImage)
+    {
+        $adapter = $this->adapter;
+        $resizedWidth = $adapter->getWidth($resizedImage);
+        return intval(
+            ($this->previewWidth - $resizedWidth) / 2
+        );
     }
 }
