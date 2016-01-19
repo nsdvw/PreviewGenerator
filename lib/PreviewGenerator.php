@@ -1,7 +1,6 @@
 <?php
 namespace PreviewGenerator;
 
-use WideImage\WideImage;
 use PreviewGenerator\Adapter\AdapterInterface;
 
 class PreviewGenerator
@@ -11,6 +10,7 @@ class PreviewGenerator
     const BG_RED = 255;
     const BG_GREEN = 255;
     const BG_BLUE = 255;
+    const WM_RATIO = 0.2;
 
     private $previewWidth;
     private $previewHeight;
@@ -62,6 +62,21 @@ class PreviewGenerator
         return $this;
     }
 
+    public function putWatermark($path, $wmRatio = self::WM_RATIO)
+    {
+        $adapter = $this->adapter;
+        $wm = $adapter->load($path);
+        $desiredWidth = intval($this->getSmallerSide($this->image) * $wmRatio);
+        $wmResized = $adapter->resizeDown($wm, $desiredWidth);
+        $this->image = $adapter->merge(
+            $this->image,
+            $wmResized,
+            'right - 10',
+            'bottom - 10'
+        );
+        return $this;
+    }
+
     public function save($path)
     {
         $this->adapter->save($this->preview, $path);
@@ -88,5 +103,15 @@ class PreviewGenerator
     {
         return ($this->adapter->getWidth($this->image) <= $this->previewWidth)
         and ($this->adapter->getHeight($this->image) <= $this->previewHeight);
+    }
+
+    private function getSmallerSide($image)
+    {
+        $adapter = $this->adapter;
+        if ($adapter->getWidth($image) > $adapter->getHeight($image)) {
+            return $adapter->getWidth($image);
+        } else {
+            return $adapter->getHeight($image);
+        }
     }
 }
